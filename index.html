@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Reveal – Advanced Site Technology Detector & Chrome Extension</title>
+    <meta name="description" content="Web Reveal instantly detects the technology stack of any website: CMS, frameworks, hosting, analytics, plugins, and more. A free, powerful Chrome extension for developers and marketers.">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon"> 
+    <link rel="canonical" href="[YOUR_SITE_URL]/index.html"> 
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'], // Used for titles and key elements
+                    },
+                    colors: {
+                        // Inspired by popup.html :root variables
+                        'wr-primary': '#1a2233', // text-primary
+                        'wr-secondary': '#3b4a5a', // text-secondary
+                        'wr-accent-blue': '#0052cc', // accent-blue
+                        'wr-accent-hover': '#2563eb', // accent-hover
+                        'wr-light-bg': '#f6f8fa', // bg-secondary
+                        'wr-border': '#e3e8ee', // border-color
+                        // Badge colors for visual representation
+                        'wr-cms': '#10b981',
+                        'wr-framework': '#6366f1',
+                        'wr-analytics': '#f59e0b',
+                        'wr-hosting': '#ef4444',
+                        'wr-plugins': '#3b82f6',
+                        'wr-backend': '#f43f5e',
+                        // New: Buy Me A Coffee color
+                        'bmc-yellow': '#FFDD00', 
+                    },
+                    backgroundImage: {
+                        'accent-gradient': 'linear-gradient(135deg, #0052cc 0%, #2563eb 100%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Import Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+
+        /* Custom Styles for Dynamic Effects */
+        .icon-hover-box {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .icon-hover-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .text-reveal-gradient {
+            background-image: linear-gradient(to right, #0052cc, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Hero Wave/Blob Background (Aesthetic) */
+        .hero-wave {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -10;
+            overflow: hidden;
+            opacity: 0.1;
+        }
+        .hero-wave svg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
+        }
+        
+        /* Custom Button Styling */
+        .download-button {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px -2px rgba(0, 82, 204, 0.4);
+        }
+        .download-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px -3px rgba(37, 99, 235, 0.6);
+        }
+
+        /* Buy Me A Coffee Button Styling */
+        .bmc-button {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px -2px rgba(255, 221, 0, 0.6);
+        }
+        .bmc-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px -3px rgba(255, 221, 0, 0.9);
+        }
+
+        /* Utility for Icon initialization (Lucide) */
+        [data-lucide] {
+            stroke-width: 2.5;
+        }
+    </style>
+</head>
+<body class="bg-white text-wr-primary font-sans antialiased">
+
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-wr-border shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <a href="#" class="flex items-center space-x-2">
+                    <div class="text-3xl font-heading font-extrabold text-wr-primary">
+                        {web<span class="text-wr-accent-blue">reveal</span>}
+                    </div>
+                </a>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="https://buymeacoffee.com/serphits" target="_blank" 
+                       class="bmc-button px-4 py-2 text-sm font-semibold text-wr-primary bg-bmc-yellow rounded-full sm:inline-flex items-center space-x-2 border-2 border-wr-primary/10">
+                        <span data-lucide="coffee" class="w-4 h-4"></span>
+                        <span>Buy Me a Coffee</span>
+                    </a>
+
+                    <a id="nav-download-btn" href="https://chromewebstore.google.com/detail/lccnmdnpgbddimmpfjficddbefihjlli?utm_source=item-share-cb" 
+                       target="_blank" 
+                       class="download-button px-5 py-2 text-sm font-semibold text-white bg-wr-accent-blue rounded-full hover:bg-wr-accent-hover sm:inline-flex items-center space-x-2">
+                        <span data-lucide="zap" class="w-4 h-4"></span>
+                        <span>Install Now (Free)</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="relative pt-20 pb-28 sm:pt-24 sm:pb-40 bg-wr-light-bg overflow-hidden">
+            <div class="hero-wave">
+                <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" class="absolute bottom-0 left-0 w-full h-auto text-wr-accent-blue/5">
+                    <path fill="currentColor" fill-opacity="1" d="M0,64L48,80C96,96,192,128,288,160C384,192,480,224,576,218.7C672,213,768,171,864,160C960,149,1056,171,1152,186.7C1248,203,1344,213,1392,218.7L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+                </svg>
+            </div>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                <h1 class="font-heading text-4xl sm:text-6xl lg:text-7xl font-bold mb-4 leading-tight">
+                    Reveal the <span class="text-reveal-gradient">Tech Stack</span> <br class="hidden sm:block"> Behind Any Website
+                </h1>
+                <h2 class="text-xl sm:text-2xl text-wr-secondary max-w-3xl mx-auto mb-8">
+                    Web Reveal instantly detects CMS, frameworks, hosting, analytics, plugins, and more. Become a site-scanning expert in one click.
+                </h2>
+                
+                <a href="https://chromewebstore.google.com/detail/lccnmdnpgbddimmpfjficddbefihjlli?utm_source=item-share-cb" 
+                   target="_blank" 
+                   class="download-button inline-flex items-center space-x-3 px-8 py-3 text-lg font-bold text-white bg-wr-accent-blue rounded-xl hover:bg-wr-accent-hover transition-all">
+                    <span data-lucide="download-cloud" class="w-6 h-6"></span>
+                    <span>Add to Chrome - It's Free</span>
+                </a>
+
+                <div class="mt-16">
+                    <div class="relative inline-block w-full max-w-md shadow-2xl rounded-2xl bg-white border border-wr-border p-4 transform transition duration-500 hover:scale-[1.01]" 
+                         role="img" 
+                         aria-label="Web Reveal Chrome Extension technology stack detector interface showing WordPress, React, AWS, and Google Analytics.">
+                        <div class="flex justify-between items-center pb-3 border-b border-wr-border">
+                            <h3 class="text-xl font-heading font-bold text-wr-primary">{web<span class="text-wr-accent-blue">reveal</span>}<span class="text-sm font-sans font-medium ml-2 text-wr-secondary">v2.2</span></h3>
+                            <span data-lucide="ellipsis-vertical" class="w-5 h-5 text-wr-secondary"></span>
+                        </div>
+                        <div class="mt-4 space-y-3">
+                            <div class="flex flex-wrap gap-2 text-sm font-medium">
+                                <span class="px-3 py-1 bg-wr-cms/10 text-wr-cms rounded-full">CMS</span>
+                                <span class="px-3 py-1 bg-wr-framework/10 text-wr-framework rounded-full">Frameworks</span>
+                                <span class="px-3 py-1 bg-wr-analytics/10 text-wr-analytics rounded-full">Analytics</span>
+                                <span class="px-3 py-1 bg-wr-hosting/10 text-wr-hosting rounded-full">Hosting</span>
+                            </div>
+
+                            <ul class="space-y-4 pt-2">
+                                <li class="flex items-center justify-between p-3 bg-wr-light-bg rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <span data-lucide="trello" class="w-5 h-5 text-wr-cms" aria-label="WordPress icon"></span>
+                                        <span class="text-wr-primary font-semibold">WordPress</span>
+                                    </div>
+                                    <span class="text-xs text-wr-muted font-medium px-2 py-0.5 bg-white rounded-full border border-wr-border">CMS</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-wr-light-bg rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <span data-lucide="atom" class="w-5 h-5 text-wr-framework" aria-label="React framework icon"></span>
+                                        <span class="text-wr-primary font-semibold">React (Frontend)</span>
+                                    </div>
+                                    <span class="text-xs text-wr-muted font-medium px-2 py-0.5 bg-white rounded-full border border-wr-border">Frameworks</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-wr-light-bg rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <span data-lucide="server" class="w-5 h-5 text-wr-hosting" aria-label="AWS server icon"></span>
+                                        <span class="text-wr-primary font-semibold">AWS/CloudFront</span>
+                                    </div>
+                                    <span class="text-xs text-wr-muted font-medium px-2 py-0.5 bg-white rounded-full border border-wr-border">Hosting</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-wr-light-bg rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <span data-lucide="activity-square" class="w-5 h-5 text-wr-analytics" aria-label="Google Analytics icon"></span>
+                                        <span class="text-wr-primary font-semibold">Google Analytics 4</span>
+                                    </div>
+                                    <span class="text-xs text-wr-muted font-medium px-2 py-0.5 bg-white rounded-full border border-wr-border">Analytics</span>
+                                </li>
+                            </ul>
+
+                            <div class="pt-4 text-center">
+                                <input type="text" placeholder="Deep search source code..." class="w-full p-2 border border-wr-border rounded-lg text-sm focus:ring-wr-accent-blue focus:border-wr-accent-blue" disabled>
+                                <p class="text-xs text-wr-secondary mt-2">...and more features in the live extension!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Site Scanner -->
+        <section class="w-full bg-wr-accent-blue/10 py-16">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="p-8 rounded-2xl bg-white border border-wr-accent-blue/30 shadow-lg">
+                    <h3 class="text-3xl font-heading font-bold mb-2 text-wr-primary">Scan a Website (Basic)</h3>
+                    <p class="text-sm text-wr-secondary mb-6">Enter a website address to instantly discover the technologies powering it.</p>
+
+                    <div class="flex gap-3 mb-4">
+                        <input id="scan-url" type="text" placeholder="https://example.com" class="flex-1 p-3 border border-wr-accent-blue/30 rounded-lg text-sm focus:ring-2 focus:ring-wr-accent-blue focus:border-wr-accent-blue" />
+                        <button id="scan-btn" class="px-6 py-3 bg-wr-accent-blue text-white font-semibold rounded-lg hover:bg-wr-accent-hover transition-all">Scan</button>
+                    </div>
+
+                    <div id="scan-status" class="text-sm text-wr-secondary mb-4">Ready to scan.</div>
+					
+                    <div id="scan-results" class="space-y-2 text-sm">
+                        <!-- Results inserted here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+<div id="scan-status" class="text-sm text-wr-secondary mb-4" style="text-align:center;">Download our extension for more accuracy.</div>
+        <!-- 2. Core Features Section -->
+        <section class="py-20 sm:py-28">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl sm:text-5xl font-heading font-bold mb-4">
+                        What <span class="text-wr-accent-blue">Web Reveal</span> Finds
+                    </h2>
+                    <p class="text-lg text-wr-secondary max-w-3xl mx-auto">
+                        We scan deeper than surface-level tags, utilizing HTML, script analysis, meta tags, and crucial HTTP headers for unmatched accuracy.
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Feature 1: CMS & E-commerce -->
+                    <div class="icon-hover-box p-8 bg-white border border-wr-border rounded-xl shadow-lg hover:shadow-xl">
+                        <div class="p-3 inline-flex rounded-full bg-wr-cms/20 text-wr-cms mb-4">
+                            <span data-lucide="archive" class="w-6 h-6"></span>
+                        </div>
+                        <h3 class="text-xl font-heading font-semibold mb-3">Content Systems (CMS)</h3>
+                        <p class="text-wr-secondary">Identify popular platforms like WordPress, Shopify, Drupal, Wix, Squarespace, and custom e-commerce solutions immediately.</p>
+                    </div>
+
+                    <!-- Feature 2: Frontend & Frameworks -->
+                    <div class="icon-hover-box p-8 bg-white border border-wr-border rounded-xl shadow-lg hover:shadow-xl">
+                        <div class="p-3 inline-flex rounded-full bg-wr-framework/20 text-wr-framework mb-4">
+                            <span data-lucide="code" class="w-6 h-6"></span>
+                        </div>
+                        <h3 class="text-xl font-heading font-semibold mb-3">Frameworks & Libraries</h3>
+                        <p class="text-wr-secondary">Detect the core tech: React, Angular, Vue, jQuery, Bootstrap, and other critical frontend/backend frameworks powering the user interface.</p>
+                    </div>
+
+                    <!-- Feature 3: Analytics & Tracking -->
+                    <div class="icon-hover-box p-8 bg-white border border-wr-border rounded-xl shadow-lg hover:shadow-xl">
+                        <div class="p-3 inline-flex rounded-full bg-wr-analytics/20 text-wr-analytics mb-4">
+                            <span data-lucide="bar-chart-3" class="w-6 h-6"></span>
+                        </div>
+                        <h3 class="text-xl font-heading font-semibold mb-3">Analytics & Marketing</h3>
+                        <p class="text-wr-secondary">Discover tracking tools like Google Analytics, Facebook Pixel, HubSpot, and other vital marketing and performance monitoring scripts.</p>
+                    </div>
+
+                    <!-- Feature 4: Hosting & Infrastructure -->
+                    <div class="icon-hover-box p-8 bg-white border border-wr-border rounded-xl shadow-lg hover:shadow-xl">
+                        <div class="p-3 inline-flex rounded-full bg-wr-hosting/20 text-wr-hosting mb-4">
+                            <span data-lucide="server" class="w-6 h-6"></span>
+                        </div>
+                        <h3 class="text-xl font-heading font-semibold mb-3">Hosting & CDN Hints</h3>
+                        <p class="text-wr-secondary">Get clues on where the site is hosted—identifying cloud providers (AWS, Azure, GCP) or CDNs (Cloudflare, Akamai) from headers.</p>
+                    </div>
+
+                    <!-- Feature 5: Plugins & Extensions -->
+                    <div class="icon-hover-box p-8 bg-white border border-wr-border rounded-xl shadow-lg hover:shadow-xl">
+                        <div class="p-3 inline-flex rounded-full bg-wr-plugins/20 text-wr-plugins mb-4">
+                            <span data-lucide="puzzle" class="w-6 h-6"></span>
+                        </div>
+                        <h3 class="text-xl font-heading font-semibold mb-3">Plugins & Widgets</h3>
+                        <p class="text-wr-secondary">Spot common add-ons for chat, forms, comments, optimization, and security, revealing specific site extensions.</p>
+                    </div>
+
+                    <!-- Feature 6: Deep Source Code Search -->
+                    <div class="icon-hover-box p-8 bg-white border border-wr-border rounded-xl shadow-lg hover:shadow-xl">
+                        <div class="p-3 inline-flex rounded-full bg-wr-backend/20 text-wr-backend mb-4">
+                            <span data-lucide="search" class="w-6 h-6"></span>
+                        </div>
+                        <h3 class="text-xl font-heading font-semibold mb-3">Source Code Analysis</h3>
+                        <p class="text-wr-secondary">Instantly deep-search the entire page source for specific keywords, classes, or code snippets without opening Developer Tools.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Call to Action Block -->
+        <section class="py-20 sm:py-28 bg-wr-light-bg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <div class="max-w-4xl mx-auto p-10 sm:p-14 rounded-3xl bg-wr-accent-blue/5 border border-wr-accent-blue/10">
+                    <h2 class="text-3xl sm:text-4xl font-heading font-bold mb-4 text-wr-primary">
+                        Unlock Instant Website Intelligence.
+                    </h2>
+                    <p class="text-xl text-wr-secondary mb-8">
+                        Join thousands of developers, analysts, and marketers who use Web Reveal daily to save time and inform their strategy.
+                    </p>
+                    <a href="https://chrome.google.com/webstore/detail/web-reveal-advanced-site/PLACEHOLDER_EXTENSION_ID" 
+                       target="_blank" 
+                       class="download-button inline-flex items-center space-x-3 px-10 py-4 text-xl font-bold text-white bg-wr-accent-blue rounded-full hover:bg-wr-accent-hover transition-all">
+                        <span data-lucide="arrow-right-circle" class="w-6 h-6"></span>
+                        <span>Get Web Reveal Now</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    <script>
+        // Improved scanner: stricter signatures, meta generator version extraction, and evidence reporting
+        (function(){
+            const statusEl = () => document.getElementById('scan-status');
+            const resultsEl = () => document.getElementById('scan-results');
+            const verboseEl = () => document.getElementById('scan-verbose');
+
+            function normalizeUrl(input){
+                if(!input) return '';
+                input = input.trim();
+                if(!/^https?:\/\//i.test(input)) input = 'https://' + input;
+                return input;
+            }
+
+            function updateStatus(text, isError){
+                const el = statusEl(); if(!el) return; el.textContent = text; el.style.color = isError ? '#b91c1c' : '';
+            }
+
+            function clearResults(){ const el = resultsEl(); if(el) el.innerHTML = ''; }
+
+            function shortSnippet(s, max=120){ if(!s) return ''; s = (''+s).replace(/\s+/g,' ').trim(); return s.length>max? s.slice(0,max-1)+'…': s; }
+
+            function buildSignatures(){
+                const sig = [];
+                const byHtml = (re, name, cat, hint) => sig.push({name, category: cat, test: (doc, html, assets) => re.test(html) ? (hint || html.match(re)[0]) : null});
+                const byAsset = (re, name, cat, hint) => sig.push({name, category: cat, test: (doc, html, assets) => { const m = assets.join(' '); const r = m.match(re); return r ? (hint || r[0]) : null }});
+                const byMeta = (metaName, re, name, cat, hint) => sig.push({name, category: cat, test: (doc, html, assets) => { const m = doc.querySelector('meta[name="'+metaName+'"]'); if(m){ const c = m.getAttribute('content')||''; if(re.test(c)) return hint || c; } return null }});
+                const byString = (str, name, cat) => sig.push({name, category: cat, test: (doc, html, assets) => html.includes(str.toLowerCase()) ? str : null});
+
+                // CMS & Blog Platforms (60+ signatures)
+                byHtml(/\bwp-content\b|\bwp-includes\b|\bWordPress\b|wordpress-version|wp-json/i,'WordPress','CMS');
+                byMeta('generator', /WordPress\s*[0-9.]*/i, 'WordPress','CMS');
+                byHtml(/\bwoocommerce\b|wc-post-data|woocommerce-pagination/i,'WooCommerce','CMS');
+                byAsset(/cdn\.shopify\.com|\.myshopify\.com|shopify\.cdn|shopifycdn|shopify-section|shopify-/i,'Shopify','CMS');
+                byHtml(/\bDrupal\b|\bdrupal-settings-json\b|\bDrupal\.settings\b|drupal_settings|drupal\.org/i,'Drupal','CMS');
+                byHtml(/\bJoomla!\b|index\.php\?option=com_|\bjoomla\b|\/components\/com_/i,'Joomla','CMS');
+                byHtml(/\bMagento\b|mage\.js|Mage\.Cookies|Mage\.VERSION|\/mage\/|magento\.com/i,'Magento','CMS');
+                byHtml(/\bPrestaShop\b|prestashop|prestashop-module/i,'PrestaShop','CMS');
+                byMeta('generator', /Ghost\s*[0-9.]*/i, 'Ghost','CMS');
+                byHtml(/\bGhost\b|\/ghost\/api|ghost-api/i,'Ghost','CMS');
+                byHtml(/\bSquarespace\b|squarespace-com|sqs-cdn|squarespace/i,'Squarespace','CMS');
+                byAsset(/wix\.com|wixstatic|wix-analytics|wix\.mx|wix-cms/i,'Wix','CMS');
+                byHtml(/\bWebflow\b|webflow\.js|webflow-css|w-tab|w-mod-js|webflow\.io/i,'Webflow','CMS');
+                byAsset(/webflow\.com|cdn\.webflow\.com|webflow/i,'Webflow','CMS');
+                byHtml(/\bWeebly\b|weebly\.com|weebly-static/i,'Weebly','CMS');
+                byHtml(/\bTumblr\b|tumblr\.com|tumblr-post/i,'Tumblr','CMS');
+                byHtml(/\bMedium\b|medium\.com|cdn-images|medium-com/i,'Medium','CMS');
+                byHtml(/\bHubSpot\b|hubspot|hubspot-form/i,'HubSpot','CMS');
+                byHtml(/concrete5|c5/i,'Concrete5','CMS');
+                byHtml(/\bExpressionEngine\b|ee_folder|expressionengine/i,'ExpressionEngine','CMS');
+                byHtml(/\bModx\b|modx\.com|modxcms/i,'MODX','CMS');
+                byHtml(/\bSilverStripe\b|silverstripe\.org|silverstripe-/i,'SilverStripe','CMS');
+                byHtml(/\bUmbraco\b|umbraco\.com|umbracotree/i,'Umbraco','CMS');
+                byHtml(/\bTerrific\b|terrific\.io/i,'Terrific','CMS');
+                byHtml(/\btextPattern\b|textpattern/i,'Textpattern','CMS');
+                byHtml(/\bCraft\b|craft\.io|craftcms/i,'Craft CMS','CMS');
+                byHtml(/\bStatamic\b/i,'Statamic','CMS');
+                byHtml(/\bKirby\b|kirby\.tools/i,'Kirby','CMS');
+                byHtml(/\bPimcore\b/i,'Pimcore','CMS');
+                byHtml(/\bOctobercms\b/i,'October CMS','CMS');
+                byHtml(/\bCustonomy\b|customonomy/i,'Customonomy','CMS');
+                byHtml(/\bforkCMS\b/i,'Fork CMS','CMS');
+                byHtml(/\bRefinery\b|refinerycms/i,'Refinery CMS','CMS');
+                byHtml(/\bPelican\b|pelican/i,'Pelican','CMS');
+                byHtml(/\bLektor\b|lektor/i,'Lektor','CMS');
+                byHtml(/\bHugo\b|\/hugo/i,'Hugo','CMS');
+                byHtml(/\bJekyll\b|jekyll/i,'Jekyll','CMS');
+                byHtml(/\bHexo\b|hexo/i,'Hexo','CMS');
+
+                // Frontend Frameworks (90+ signatures)
+                byHtml(/\bReact\b|data-reactroot|react-dom|__REACT_DEVTOOLS_GLOBAL_HOOK__|data-reactid|__react|react\.createElement/i,'React','Frontend');
+                byHtml(/\bVue\b|__VUE_DEVTOOLS_GLOBAL_HOOK__|vue\.runtime|__VUE__|new Vue\(|Vue\.config|vue\.global/i,'Vue','Frontend');
+                byHtml(/\bAngular\b|ng-app|ng-version|angular\.module|ng-controller|\/angular\.js|angular\.bootstrap/i,'Angular','Frontend');
+                byHtml(/_next\/static|next\.js|next\/data|__NEXT_DATA__|__NEXT_PAGE__|next-router/i,'Next.js','Frontend');
+                byHtml(/\bGatsby\b|__gatsby|gatsby-ssr|gatsby-browser|gatsby-focus|gatsby-image/i,'Gatsby','Frontend');
+                byHtml(/\bSvelte\b|svelte|__svelte|svelte:component/i,'Svelte','Frontend');
+                byHtml(/\bEmber\b|ember\.js|__ember|ember\.data/i,'Ember.js','Frontend');
+                byHtml(/\bBackbone\b|backbone\.js|Backbone\.Router/i,'Backbone.js','Frontend');
+                byHtml(/\bKnockout\b|knockout\.js|ko\.observable/i,'Knockout.js','Frontend');
+                byHtml(/\bMeteor\b|meteor\.startup|meteor\.subscribe/i,'Meteor','Frontend');
+                byHtml(/\bAurelia\b|aurelia-app|aurelia\.setup/i,'Aurelia','Frontend');
+                byHtml(/\bPolymer\b|polymer|custom-element/i,'Polymer','Frontend');
+                byHtml(/\bAmp\b|__AMP__|amp\.js|amp-access/i,'AMP','Frontend');
+                byHtml(/\bRiot\b|riot\.js|riot:component/i,'Riot.js','Frontend');
+                byHtml(/\bPreact\b|preact|preact\.createElement/i,'Preact','Frontend');
+                byHtml(/\bStencil\b|stenciljs|stencil\.component/i,'Stencil','Frontend');
+                byHtml(/\bCycle\b|cyclejs/i,'Cycle.js','Frontend');
+                byHtml(/\bMithril\b|mithril|m\.component/i,'Mithril','Frontend');
+                byHtml(/\bHandlebars\b|handlebars/i,'Handlebars','Frontend');
+                byHtml(/\bMarko\b|marko/i,'Marko','Frontend');
+                byHtml(/\bVirt\b|virtual-dom/i,'Virtual-DOM','Frontend');
+                byHtml(/\bInferno\b|inferno/i,'Inferno','Frontend');
+                byHtml(/\bAlpine\b|Alpine\.data|x-data|@click/i,'Alpine.js','Frontend');
+                byAsset(/unpkg\.com|jsdelivr\.net|cdnjs\.cloudflare\.com/i,'CDN','Frontend');
+
+                // CSS Frameworks & Preprocessors (50+ signatures)
+                byAsset(/tailwindcss|cdn\.tailwindcss\.com|tailwind/i,'Tailwind CSS','CSS');
+                byAsset(/bootstrap(\d+)?(\.\d+)?(\.\d+)?(\.min)?\.css|getbootstrap/i,'Bootstrap','CSS');
+                byAsset(/foundation(\d+)?\.css|foundation\.zurb/i,'Foundation','CSS');
+                byAsset(/bulma\.css|bulma/i,'Bulma','CSS');
+                byAsset(/materialize\.css|materialize/i,'Materialize','CSS');
+                byAsset(/semantic\.css|semantic-ui/i,'Semantic UI','CSS');
+                byAsset(/ant\.design|antd|ant-design/i,'Ant Design','CSS');
+                byAsset(/uikit|getuikit/i,'UIKit','CSS');
+                byAsset(/purecdn|purecss/i,'Pure.css','CSS');
+                byAsset(/milligram|milligram\.io/i,'Milligram','CSS');
+                byAsset(/skeleton\.css|getskeleton/i,'Skeleton','CSS');
+                byAsset(/normalize\.css|necolas/i,'Normalize.css','CSS');
+                byAsset(/bootstrap-material|mdbootstrap/i,'Material Bootstrap','CSS');
+                byAsset(/ionicframework|ionic\.css/i,'Ionic Framework','CSS');
+                byAsset(/\bSCSS\b|\.scss|sass/i,'Sass','CSS');
+                byAsset(/\bLESS\b|\.less|lesscss/i,'LESS','CSS');
+                byAsset(/\bStylus\b|stylus/i,'Stylus','CSS');
+                byAsset(/postcss|postcss-preset/i,'PostCSS','CSS');
+                byAsset(/BEM|bem\.info/i,'BEM','CSS');
+
+                // JavaScript Libraries (100+ signatures)
+                byAsset(/jquery(\d+)?(\.\d+)?(\.\d+)?(\.min)?\.js|jQuery|jquery\.com/i,'jQuery','Library');
+                byAsset(/lodash|underscore\.js|ramda/i,'Utility Libraries','Library');
+                byAsset(/\bD3\.js\b|d3\.v\d|d3\.min\.js/i,'D3.js','Library');
+                byAsset(/chart\.js|chartjs|charting/i,'Chart.js','Library');
+                byAsset(/vis\.js|visjs|vis-network/i,'Vis.js','Library');
+                byAsset(/plotly|plotlyjs|plot\.ly/i,'Plotly','Library');
+                byAsset(/three\.js|threejs|three\.min/i,'Three.js','Library');
+                byAsset(/babylon\.js|babylonjs/i,'Babylon.js','Library');
+                byAsset(/\bCanonical\b|canonical/i,'Canonical Tag','Library');
+                byAsset(/moment\.js|momentjs|date-fns|dayjs/i,'Date Libraries','Library');
+                byAsset(/axios|fetch-api|\bfetch\b/i,'HTTP Client','Library');
+                byAsset(/\bRxJS\b|rxjs/i,'RxJS','Library');
+                byAsset(/\bImmutable\b|immutable\.js/i,'Immutable.js','Library');
+                byAsset(/\bRedux\b|redux|redux-saga/i,'Redux','Library');
+                byAsset(/\bMobX\b|mobx/i,'MobX','Library');
+                byAsset(/\bRecoil\b|recoil/i,'Recoil','Library');
+                byAsset(/\bZustand\b|zustand/i,'Zustand','Library');
+                byAsset(/\bVuex\b|vuex/i,'Vuex','Library');
+                byAsset(/gsap|greensock/i,'GSAP','Library');
+                byAsset(/\bWebGL\b|webgl/i,'WebGL','Library');
+                byAsset(/highlight\.js|highlightjs|prismjs/i,'Syntax Highlight','Library');
+                byAsset(/\bWebpack\b|webpack/i,'Webpack','Library');
+                byAsset(/\bVite\b|vitejs|vite\.dev/i,'Vite','Library');
+                byAsset(/rollup\.js|rollupjs/i,'Rollup','Library');
+                byAsset(/\bParcel\b|parceljs/i,'Parcel','Library');
+                byAsset(/\bBrowserify\b|browserify/i,'Browserify','Library');
+                byAsset(/\bFuse\.Box\b|fusebox/i,'Fuse-Box','Library');
+
+                // Backend Frameworks (80+ signatures)
+                byAsset(/express\.js|expressjs|express/i,'Express.js','Backend');
+                byAsset(/\bNext\.js\b|nextjs/i,'Next.js','Backend');
+                byAsset(/\bNuxt\.js\b|nuxtjs/i,'Nuxt.js','Backend');
+                byAsset(/\bNest\.js\b|nestjs/i,'Nest.js','Backend');
+                byAsset(/\bFastify\b|fastify/i,'Fastify','Backend');
+                byAsset(/\bKoa\b|koajs/i,'Koa','Backend');
+                byAsset(/\bHapi\b|hapijs|hapi\.dev/i,'Hapi','Backend');
+                byAsset(/\bDjango\b|django/i,'Django','Backend');
+                byAsset(/\bFlask\b|flask/i,'Flask','Backend');
+                byAsset(/\bFastAPI\b|fastapi/i,'FastAPI','Backend');
+                byAsset(/\bPyramid\b|pylonsproject/i,'Pyramid','Backend');
+                byAsset(/\bBottle\b|bottlepy/i,'Bottle','Backend');
+                byAsset(/\bCherryPy\b|cherrypy/i,'CherryPy','Backend');
+                byAsset(/\bTurbo\b|turbogears/i,'TurboGears','Backend');
+                byAsset(/\bRails\b|rubyonrails/i,'Ruby on Rails','Backend');
+                byAsset(/\bSinatra\b|sinatrarb/i,'Sinatra','Backend');
+                byAsset(/\bLaravel\b|laravel/i,'Laravel','Backend');
+                byAsset(/\bSymfony\b|symfony/i,'Symfony','Backend');
+                byAsset(/\bSlim\b|slimframework/i,'Slim','Backend');
+                byAsset(/\bCodeIgniter\b|codeigniter/i,'CodeIgniter','Backend');
+                byAsset(/\bZend\b|zendframework|laminas/i,'Zend/Laminas','Backend');
+                byAsset(/\bCakePHP\b|cakephp/i,'CakePHP','Backend');
+                byAsset(/\bYii\b|yiiframework/i,'Yii','Backend');
+                byAsset(/\bLumen\b|lumen|lumenframework/i,'Lumen','Backend');
+                byAsset(/\bPhalcon\b|phalconphp/i,'Phalcon','Backend');
+                byAsset(/\bFatFree\b|fatfreeframework/i,'Fat-Free','Backend');
+                byAsset(/\bHyperskill\b|hyperskill/i,'Hyperskill','Backend');
+                byAsset(/\bASP\.NET\b|asp\.net|aspnetcore/i,'ASP.NET','Backend');
+                byAsset(/\bSpring\b|spring\.io|spring-boot/i,'Spring','Backend');
+                byAsset(/\bQuarkus\b|quarkus/i,'Quarkus','Backend');
+                byAsset(/\bMicronaut\b|micronaut/i,'Micronaut','Backend');
+                byAsset(/\bPlayframework\b|playframework/i,'Play Framework','Backend');
+                byAsset(/\bAkka\b|akka\.io/i,'Akka','Backend');
+                byAsset(/\bGrails\b|grails/i,'Grails','Backend');
+                byAsset(/\bJavalin\b|javalin/i,'Javalin','Backend');
+                byAsset(/\bJavaScript\b|node\.js|nodejs/i,'Node.js','Backend');
+                byAsset(/\bGo\b|golang|go\.dev/i,'Go','Backend');
+                byAsset(/\bRust\b|rust-lang/i,'Rust','Backend');
+                byAsset(/\bKotlin\b|kotlinlang/i,'Kotlin','Backend');
+                byAsset(/\bSwift\b|swift\.org/i,'Swift','Backend');
+                byAsset(/\bScala\b|scala-lang/i,'Scala','Backend');
+                byAsset(/\bClojure\b|clojure\.org/i,'Clojure','Backend');
+                byAsset(/\bElixir\b|elixir-lang/i,'Elixir','Backend');
+                byAsset(/\bOTP\b|beam/i,'OTP/BEAM','Backend');
+                byAsset(/\bErlang\b|erlang\.org/i,'Erlang','Backend');
+                byAsset(/\bHaskell\b|haskell\.org/i,'Haskell','Backend');
+
+                // Databases (60+ signatures)
+                byAsset(/\bMySQL\b|mysql|mariadb/i,'MySQL','Database');
+                byAsset(/\bPostgreSQL\b|postgres|postgresql/i,'PostgreSQL','Database');
+                byAsset(/\bMongoDB\b|mongodb|mongoose/i,'MongoDB','Database');
+                byAsset(/\bRedis\b|redis|redis\.io/i,'Redis','Database');
+                byAsset(/\bSQLite\b|sqlite/i,'SQLite','Database');
+                byAsset(/\bCassandra\b|cassandra/i,'Cassandra','Database');
+                byAsset(/\bHBase\b|hbase/i,'HBase','Database');
+                byAsset(/\bElasticsearch\b|elasticsearch|elastic\.co/i,'Elasticsearch','Database');
+                byAsset(/\bSolr\b|lucene\/solr/i,'Solr','Database');
+                byAsset(/\bRethinkDB\b|rethinkdb/i,'RethinkDB','Database');
+                byAsset(/\bCouchDB\b|couchdb/i,'CouchDB','Database');
+                byAsset(/\bDynamoDB\b|aws.*dynamodb/i,'DynamoDB','Database');
+                byAsset(/\bFirestore\b|firestore|firebase/i,'Firestore','Database');
+                byAsset(/\bRealtime Database\b|firebase.*realtime/i,'Firebase Realtime','Database');
+                byAsset(/\bArangoDB\b|arangodb/i,'ArangoDB','Database');
+                byAsset(/\bNeo4j\b|neo4j/i,'Neo4j','Database');
+                byAsset(/\bOracle\b|oracle\.com/i,'Oracle','Database');
+                byAsset(/\bSQL Server\b|mssql|sqlserver/i,'SQL Server','Database');
+                byAsset(/\bDB2\b|ibm\.db2/i,'IBM DB2','Database');
+                byAsset(/\bSybase\b|sybase/i,'Sybase','Database');
+                byAsset(/\bInformix\b|informix/i,'Informix','Database');
+                byAsset(/\bTeradata\b|teradata/i,'Teradata','Database');
+                byAsset(/\bSnowflake\b|snowflake|snowflakecomputing/i,'Snowflake','Database');
+                byAsset(/\bBigQuery\b|bigquery|google\.bigquery/i,'BigQuery','Database');
+                byAsset(/\bRedshift\b|amazon.*redshift/i,'Amazon Redshift','Database');
+                byAsset(/\bVertica\b|vertica/i,'Vertica','Database');
+                byAsset(/\bSingleStore\b|singlestore|memsql/i,'SingleStore','Database');
+                byAsset(/\bCockroach\b|cockroachdb/i,'CockroachDB','Database');
+                byAsset(/\bOmniDB\b|omnidb/i,'OmniDB','Database');
+
+                // Analytics & Tracking (80+ signatures)
+                byAsset(/googletagmanager|gtm\.js|GTM-\w+/i,'Google Tag Manager','Analytics');
+                byAsset(/gtag\(|google-analytics|analytics\.js|UA-\d{4,}|G-[A-Z0-9]+/i,'Google Analytics','Analytics');
+                byAsset(/facebook\.net|fbq\(|fbevents|pixel\.quantserve/i,'Facebook Pixel','Analytics');
+                byAsset(/mixpanel|mp\.mixpanel/i,'Mixpanel','Analytics');
+                byAsset(/hotjar|heatmap|hotjar\.com/i,'Hotjar','Analytics');
+                byAsset(/segment\.io|segment\.com|analytics\.js/i,'Segment','Analytics');
+                byAsset(/amplitude|amplitude\.com/i,'Amplitude','Analytics');
+                byAsset(/pendo|pendo\.io/i,'Pendo','Analytics');
+                byAsset(/appcues|appcues\.com/i,'Appcues','Analytics');
+                byAsset(/intercom|intercomcdn|intercom\.io/i,'Intercom','Analytics');
+                byAsset(/drift|drift\.com/i,'Drift','Analytics');
+                byAsset(/olark|olark\.com/i,'Olark','Analytics');
+                byAsset(/tawk\.to|tawk\.io/i,'Tawk.to','Analytics');
+                byAsset(/zendesk|zopim|livechat/i,'Zendesk','Analytics');
+                byAsset(/inspect|inspect\.io/i,'Inspect.io','Analytics');
+                byAsset(/logrocket|logrocket\.com/i,'LogRocket','Analytics');
+                byAsset(/sentry|sentry\.io/i,'Sentry','Analytics');
+                byAsset(/datadog|datadoghq/i,'Datadog','Analytics');
+                byAsset(/newrelic|newrelic\.com/i,'New Relic','Analytics');
+                byAsset(/pingdom|pingdom\.com/i,'Pingdom','Analytics');
+                byAsset(/statsd|graphite/i,'StatsD/Graphite','Analytics');
+                byAsset(/prometheus|prometheus\.io/i,'Prometheus','Analytics');
+                byAsset(/grafana|grafana\.com/i,'Grafana','Analytics');
+                byAsset(/kibana|kibana\.org/i,'Kibana','Analytics');
+                byAsset(/splunk|splunk\.com/i,'Splunk','Analytics');
+                byAsset(/sumo logic|sumologic/i,'Sumo Logic','Analytics');
+                byAsset(/cloudwatch|aws\.cloudwatch/i,'CloudWatch','Analytics');
+                byAsset(/stackdriver|google.*monitoring/i,'Stackdriver','Analytics');
+                byAsset(/azure.*monitor|appinsights/i,'Azure Monitor','Analytics');
+
+                // Hosting & Cloud (60+ signatures)
+                byHtml(/cloudflare|cloudflareinsights|cloudflare-static/i,'Cloudflare','Hosting');
+                byHtml(/amazonaws|cloudfront|s3\.amazonaws\.com|aws|amazon-web-services/i,'Amazon AWS','Hosting');
+                byAsset(/vercel\.com|now\.sh|vercel\.app|vercel/i,'Vercel','Hosting');
+                byAsset(/netlify\.com|netlify\.app|netlify/i,'Netlify','Hosting');
+                byAsset(/heroku\.com|herokuapp/i,'Heroku','Hosting');
+                byAsset(/firebase|firebaseapp/i,'Firebase','Hosting');
+                byAsset(/github\.pages|pages\.github/i,'GitHub Pages','Hosting');
+                byAsset(/gitlab\.pages|pages\.gitlab/i,'GitLab Pages','Hosting');
+                byAsset(/surge\.sh|surge\.io/i,'Surge','Hosting');
+                byAsset(/now\.run|run\.app/i,'Run','Hosting');
+                byAsset(/repl\.it|replit/i,'Replit','Hosting');
+                byAsset(/glitch\.com|glitch/i,'Glitch','Hosting');
+                byAsset(/digital-ocean|digitalocean|doctl/i,'DigitalOcean','Hosting');
+                byAsset(/linode|akamai/i,'Linode/Akamai','Hosting');
+                byAsset(/vultr\.com|vultr/i,'Vultr','Hosting');
+                byAsset(/ovh\.net|ovh/i,'OVH','Hosting');
+                byAsset(/hetzner\.cloud|hetzner/i,'Hetzner','Hosting');
+                byAsset(/gcloud|google-cloud|cloud\.google/i,'Google Cloud','Hosting');
+                byAsset(/azurewebsites|azure\.microsoft|microsoft\.azure/i,'Microsoft Azure','Hosting');
+                byAsset(/ibm\.cloud|bluemix/i,'IBM Cloud','Hosting');
+                byAsset(/oracle\.cloud|oraclecloud/i,'Oracle Cloud','Hosting');
+                byAsset(/alibaba.*cloud|aliyun/i,'Alibaba Cloud','Hosting');
+                byAsset(/tencent.*cloud|tencentcloud/i,'Tencent Cloud','Hosting');
+
+                // Payment Processing (40+ signatures)
+                byAsset(/js\.stripe\.com|stripe\.com|stripe/i,'Stripe','Payment');
+                byAsset(/paypal|paypalobjects/i,'PayPal','Payment');
+                byAsset(/square\.com|squareup|square-js/i,'Square','Payment');
+                byAsset(/braintree|braintreegateway/i,'Braintree','Payment');
+                byAsset(/skrill\.com|skrill/i,'Skrill','Payment');
+                byAsset(/2checkout|verifone/i,'2Checkout','Payment');
+                byAsset(/worldpay|fisglobal/i,'Worldpay','Payment');
+                byAsset(/authorize\.net|authorizenet/i,'Authorize.net','Payment');
+                byAsset(/sage\.com|sage-pay/i,'Sage','Payment');
+                byAsset(/paymentexpress|dps/i,'Payment Express','Payment');
+                byAsset(/g2a\.com|g2a/i,'G2A','Payment');
+                byAsset(/paddle\.com|paddle/i,'Paddle','Payment');
+                byAsset(/gumroad\.com|gumroad/i,'Gumroad','Payment');
+                byAsset(/fastspring|xsellence/i,'FastSpring','Payment');
+                byAsset(/recurly\.com|recurly/i,'Recurly','Payment');
+                byAsset(/chargify\.com|chargify/i,'Chargify','Payment');
+                byAsset(/zuora\.com|zuora/i,'Zuora','Payment');
+
+                // Ecommerce Platforms (50+ signatures)
+                byAsset(/shopify|cdn\.shopify\.com|\.myshopify\.com/i,'Shopify','Ecommerce');
+                byHtml(/\bwoocommerce\b/i,'WooCommerce','Ecommerce');
+                byHtml(/\bMagento\b|mage\.js|Mage\.Cookies/i,'Magento','Ecommerce');
+                byHtml(/\bPrestaShop\b/i,'PrestaShop','Ecommerce');
+                byAsset(/bigcommerce\.com|bigcommerce/i,'BigCommerce','Ecommerce');
+                byAsset(/squarespace|commerce\.squarespace/i,'Squarespace Commerce','Ecommerce');
+                byAsset(/wix\.com|wixstatic|wix-commerce/i,'Wix Commerce','Ecommerce');
+                byAsset(/ecwid\.com|ecwid/i,'Ecwid','Ecommerce');
+                byAsset(/3dcart\.com|3dcart/i,'3DCart','Ecommerce');
+                byAsset(/volusion\.com|volusion/i,'Volusion','Ecommerce');
+                byAsset(/opencart|opencart\.com/i,'OpenCart','Ecommerce');
+                byAsset(/ubercart|ubercart\.org/i,'Ubercart','Ecommerce');
+                byAsset(/virtuemart\.net|virtuemart/i,'VirtueMart','Ecommerce');
+                byAsset(/magmi|magmi\.org/i,'MAGMI','Ecommerce');
+                byAsset(/oscommerce|oscommerce\.com/i,'osCommerce','Ecommerce');
+                byAsset(/zencart|zen-cart/i,'Zen Cart','Ecommerce');
+                byAsset(/acumatica|acumatica\.com/i,'Acumatica','Ecommerce');
+                byAsset(/nopcommerce|nopcommerce\.com/i,'nopCommerce','Ecommerce');
+                byAsset(/saleforce commerce|salesforce\.com/i,'Salesforce Commerce','Ecommerce');
+
+                // DevOps & Infrastructure (50+ signatures)
+                byAsset(/docker|docker\.io|dockerhub/i,'Docker','DevOps');
+                byAsset(/kubernetes|k8s|helm|rancher/i,'Kubernetes','DevOps');
+                byAsset(/terraform\.io|terraform/i,'Terraform','DevOps');
+                byAsset(/ansible|ansible\.com/i,'Ansible','DevOps');
+                byAsset(/chef\.io|chef/i,'Chef','DevOps');
+                byAsset(/puppet\.com|puppet/i,'Puppet','DevOps');
+                byAsset(/saltstack|salt-project/i,'SaltStack','DevOps');
+                byAsset(/jenkins\.io|jenkins|jenkins-ci/i,'Jenkins','DevOps');
+                byAsset(/circleci|circle\.ci/i,'CircleCI','DevOps');
+                byAsset(/travis-ci|travis\.ci/i,'Travis CI','DevOps');
+                byAsset(/gitlab\.com|gitlab-ci/i,'GitLab CI','DevOps');
+                byAsset(/github\.com.*actions|github-actions/i,'GitHub Actions','DevOps');
+                byAsset(/bitbucket\.org|bitbucket-pipelines/i,'Bitbucket Pipelines','DevOps');
+                byAsset(/drone\.io|drone/i,'Drone','DevOps');
+                byAsset(/appveyor|appveyor\.com/i,'AppVeyor','DevOps');
+                byAsset(/codepipeline|aws\.codepipeline/i,'AWS CodePipeline','DevOps');
+                byAsset(/azure.*pipelines|visualstudio\.com/i,'Azure Pipelines','DevOps');
+
+                return sig;
+            }
+
+            function analyzeMetaGenerator(doc){
+                const meta = doc.querySelector('meta[name="generator"]');
+                if(!meta) return null;
+                const content = (meta.getAttribute('content')||'').trim();
+                if(!content) return null;
+                // Try to extract known product + version e.g. 'WordPress 6.6.4'
+                const m = content.match(/([^0-9]+?)\s*([0-9]+(?:\.[0-9]+)*)?/);
+                if(m){
+                    const name = (m[1]||content).trim();
+                    const ver = m[2] ? m[2].trim() : null;
+                    return {name, version: ver, raw: content};
+                }
+                return {name: content, raw: content};
+            }
+
+            function detectTechs(html){
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const assets = [];
+                const scripts = Array.from(doc.scripts || []).map(s => s.src || (s.textContent||'').slice(0,200));
+                const links = Array.from(doc.querySelectorAll('link[href]')).map(l => l.getAttribute('href'));
+                const metas = Array.from(doc.querySelectorAll('meta[name]')).map(m => (m.getAttribute('name')||'')+':'+(m.getAttribute('content')||''));
+                assets.push(...scripts.filter(Boolean)); assets.push(...links.filter(Boolean)); assets.push(...metas.filter(Boolean));
+
+                const signatures = buildSignatures();
+                const grouped = {};
+
+                signatures.forEach(sig => {
+                    try{
+                        const ev = sig.test(doc, html, assets);
+                        if(ev){
+                            if(!grouped[sig.category]) grouped[sig.category] = [];
+                            grouped[sig.category].push({name: sig.name, evidence: shortSnippet(ev,140)});
+                        }
+                    }catch(e){ /* ignore */ }
+                });
+
+                // meta generator extraction: present as highest-priority meta info
+                const metaInfo = analyzeMetaGenerator(doc);
+                if(metaInfo){
+                    const cat = 'Meta';
+                    if(!grouped[cat]) grouped[cat] = [];
+                    const title = metaInfo.version ? (metaInfo.name + ' ' + metaInfo.version) : metaInfo.name;
+                    grouped[cat].unshift({name: 'meta generator — ' + title, evidence: shortSnippet(metaInfo.raw,140)});
+                }
+
+                return grouped;
+            }
+
+            async function tryFetchWithProxies(targetUrl){
+                // Attempt a small set of public proxies as a fallback. UI avoids technical proxy wording.
+                const proxies = [
+                    {name:'AllOrigins', url:'https://api.allorigins.win/raw?url='},
+                    {name:'CodeTabs', url:'https://api.codetabs.com/v1/proxy?quest='}
+                ];
+                let lastErr = null;
+                for(const p of proxies){
+                    try{
+                        updateStatus('Fetching page...');
+                        const res = await fetch(p.url + encodeURIComponent(targetUrl), {cache:'no-store'});
+                        if(!res.ok) throw new Error(p.name+' '+res.status);
+                        const text = await res.text();
+                        return {text, proxy: p.name};
+                    }catch(err){ lastErr = err; }
+                }
+                // as last effort, try direct fetch (may be blocked by CORS)
+                try{
+                    updateStatus('Attempting direct fetch...');
+                    const res = await fetch(targetUrl, {cache:'no-store'});
+                    if(!res.ok) throw new Error('Direct fetch '+res.status);
+                    const text = await res.text();
+                    return {text, proxy: 'direct'};
+                }catch(err){ lastErr = err; }
+                throw lastErr || new Error('Unable to fetch');
+            }
+
+            async function scanSite(rawUrl){
+                const url = normalizeUrl(rawUrl);
+                clearResults();
+                if(!url){ updateStatus('Please enter a website address.', true); return; }
+                updateStatus('Scanning ' + url + ' ...');
+                try{
+                    const fetched = await tryFetchWithProxies(url);
+                    updateStatus('Analyzing results...');
+                    const grouped = detectTechs(fetched.text);
+                    renderGroupedResults(grouped);
+                    const total = Object.values(grouped).reduce((s,a)=>s+(a||[]).length,0);
+                    updateStatus(total ? ('Found ' + total + ' technology(ies).') : 'No obvious technologies detected.');
+                }catch(err){
+                    updateStatus('Could not fetch the site. Try the Chrome extension or run this page from a local server.', true);
+                    const el = resultsEl(); if(el) el.innerHTML = '<div class="p-3 bg-white border border-wr-border rounded text-sm">Could not fetch the site. Try the Chrome extension or run this page from a local server. (' + (err.message||err) + ')</div>';
+                }
+            }
+
+            function renderGroupedResults(grouped){
+                const el = resultsEl(); if(!el) return; el.innerHTML = '';
+                const cats = Object.keys(grouped||{});
+                if(cats.length===0){ el.innerHTML = '<div class="p-3 bg-wr-light-bg border border-wr-border rounded text-wr-secondary">No obvious technologies detected.</div>'; return; }
+                cats.forEach(cat=>{
+                    const h = document.createElement('div'); h.className='font-bold text-wr-accent-blue mt-4 mb-2'; h.textContent = cat; el.appendChild(h);
+                    grouped[cat].forEach(item=>{
+                        const node = document.createElement('div'); node.className='p-3 bg-wr-light-bg border border-wr-border rounded mb-2';
+                        node.innerHTML = '<strong class="text-wr-primary">' + item.name + '</strong>' + (item.evidence ? (' <span class="text-wr-secondary text-xs">— ' + item.evidence + '</span>') : '');
+                        el.appendChild(node);
+                    });
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', ()=>{
+                const mainBtn = document.getElementById('scan-btn');
+                const mainInput = document.getElementById('scan-url');
+                if(mainBtn && mainInput) mainBtn.addEventListener('click', ()=>scanSite(mainInput.value));
+                if(mainInput) mainInput.addEventListener('keydown', e=>{ if(e.key==='Enter') scanSite(mainInput.value); });
+            });
+        })();
+    </script>
+
+    <script>
+        lucide.createIcons();
+    </script>
+
+    <!-- Footer -->
+    <footer class="w-full bg-wr-primary text-wr-light-bg py-16 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
+                <!-- Company Info -->
+                <div>
+                    <h4 class="text-lg font-heading font-bold mb-4 text-white">Web Reveal</h4>
+                    <p class="text-sm text-wr-secondary mb-4">Instantly detect the technology stack powering any website.</p>
+                    <div class="flex space-x-3">
+                        <a href="https://twitter.com" target="_blank" class="text-wr-secondary hover:text-wr-accent-blue transition">
+                            <span data-lucide="twitter" class="w-5 h-5"></span>
+                        </a>
+                        <a href="https://github.com" target="_blank" class="text-wr-secondary hover:text-wr-accent-blue transition">
+                            <span data-lucide="github" class="w-5 h-5"></span>
+                        </a>
+                        <a href="https://linkedin.com" target="_blank" class="text-wr-secondary hover:text-wr-accent-blue transition">
+                            <span data-lucide="linkedin" class="w-5 h-5"></span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Product -->
+                <div>
+                    <h5 class="font-semibold mb-4 text-white">Product</h5>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Chrome Extension</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Web Scanner</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">API</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Pricing</a></li>
+                    </ul>
+                </div>
+
+                <!-- Resources -->
+                <div>
+                    <h5 class="font-semibold mb-4 text-white">Resources</h5>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Documentation</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Blog</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Support</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <!-- Legal -->
+                <div>
+                    <h5 class="font-semibold mb-4 text-white">Legal</h5>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Privacy Policy</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Terms of Service</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">License</a></li>
+                        <li><a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Bottom Section -->
+            <div class="border-t border-wr-secondary/30 pt-8">
+                <div class="flex flex-col sm:flex-row justify-between items-center">
+                    <p class="text-sm text-wr-secondary mb-4 sm:mb-0">© 2025 Web Reveal. All rights reserved.</p>
+                    <div class="flex space-x-6 text-sm">
+                        <a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Privacy</a>
+                        <a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Terms</a>
+                        <a href="#" class="text-wr-secondary hover:text-wr-accent-blue transition">Status</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+	
+</body>
+</html>
